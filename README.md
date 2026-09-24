@@ -1,7 +1,5 @@
 # FleetOS 🚛
 
-> **Human-Centered, Secure and Real-Time Fleet Management Platform**
-
 FleetOS is a full-stack **MERN-based fleet management platform** designed to help organizations manage vehicles, drivers, trips, fuel, maintenance, attendance, payroll, and live vehicle tracking from one practical and easy-to-use system.
 
 The project focuses on **real fleet operations rather than an AI-heavy experience**. The user interface is designed to feel like a professional enterprise application used by fleet managers, operations teams, maintenance teams, and drivers.
