@@ -1,549 +1,124 @@
-# FleetOS 🚛
+# FleetOS
 
-> **Human-Centered, Secure and Real-Time Fleet Management Platform**
+## Human-Centered Fleet Operations, Tracking & Profitability Platform
 
-FleetOS is a full-stack **MERN-based fleet management platform** designed to help organizations manage vehicles, drivers, trips, fuel, maintenance, attendance, payroll, and live vehicle tracking from one practical and easy-to-use system.
+FleetOS is a production-style MERN full-stack, multi-tenant SaaS platform for managing fleet operations from a single system.
 
-The project focuses on **real fleet operations rather than an AI-heavy experience**. The user interface is designed to feel like a professional enterprise application used by fleet managers, operations teams, maintenance teams, and drivers.
+It connects vehicles, drivers, trips, real-time GPS tracking, fuel, maintenance, attendance, expenses, income, payroll, profitability, reporting, compliance, and organization management.
 
----
+### Core capabilities
+- Authentication, JWT, RBAC, and tenant isolation
+- Vehicles, drivers, assignments, and trips
+- Real-time GPS using simulated telemetry or driver phone GPS
+- Socket.io live tracking and Leaflet/OpenStreetMap maps
+- Attendance, daily income, fuel, maintenance, and expenses
+- Payroll and financial profitability engine
+- Vehicle/trip profitability and TCO
+- Advanced reports with PDF, Excel, and CSV export
+- Scheduled reports
+- Offline driver workflows with local queue and synchronization
+- Subscription-plan and billing architecture
+- Alerts, notifications, documents, compliance, and audit logs
 
-## 📌 Project Overview
+## User roles
+1. **Super Admin** — platform and organization administration
+2. **Organization Admin** — company administration, users, settings, subscription
+3. **Fleet Manager** — daily fleet operations, tracking, finance, reports
+4. **Driver** — trips, GPS, attendance, income, offline workflows
+5. **Maintenance Staff** — service and maintenance operations
+6. **Analyst/Auditor** — read-only analytics and audit information
 
-Managing multiple vehicles often involves spreadsheets, paper records, phone calls, separate GPS applications, and manual reports. This can lead to:
-
-- Disconnected vehicle and driver information
-- Missed maintenance schedules
-- Difficulty tracking trips
-- Poor visibility into fuel usage
-- Manual attendance and salary calculations
-- Delayed operational updates
-- Difficulty monitoring vehicles in real time
-
-FleetOS brings these activities into a single centralized platform.
-
-### Core idea
-
-```text
-PLAN → OPERATE → MONITOR → MAINTAIN → REPORT
-```
-
----
-
-# 🎯 Project Goals
-
-FleetOS aims to:
-
-- Centralize fleet information.
-- Manage vehicles and drivers efficiently.
-- Track trips and vehicle status.
-- Provide live vehicle location tracking.
-- Record driver morning check-in and check-out.
-- Calculate working hours and daily income.
-- Manage salary, incentives, overtime and deductions.
-- Track fuel usage and costs.
-- Schedule and record vehicle maintenance.
-- Provide useful alerts and reports.
-- Provide secure role-based access.
-- Keep the interface simple, clear and human-centered.
-
----
-
-# ✨ Core Features
-
-## 1. 🔐 Authentication & User Management
-
-- User registration and login
-- Secure password hashing
-- JWT authentication
-- Role-based access control
-- Session management
-- Organization-based access
-- Protected routes
-- Audit logging
-- Input validation
-
-### Main Roles
+## Financial engine
+For vehicles and trips:
 
 ```text
-Admin
-Fleet Manager
-Maintenance Team
-Driver
-Analyst / Auditor
+Revenue
+- Fuel
+- Maintenance
+- Toll
+- Driver Cost
+- Insurance
+- Other Costs
+= Net Operating Profit
 ```
 
----
+Additional metrics include profit margin, revenue per KM, cost per KM, profit per KM, fuel cost per KM, and maintenance cost per KM.
 
-## 2. 🏢 Organization Management
+### TCO
+```text
+Purchase Cost
++ Registration
++ Insurance
++ Taxes
++ Fuel
++ Maintenance
++ Repairs
++ Other Ownership Costs
+= Total Cost of Ownership
+```
 
-FleetOS can organize users and fleet data by organization.
-
-Each organization can maintain its own:
-
-- Users
-- Vehicles
-- Drivers
-- Trips
-- Fuel records
-- Maintenance records
-- Attendance
-- Payroll
-- Reports
-
-Organization-based access helps keep operational data separated.
-
----
-
-# 🚗 3. Vehicle Management
-
-Manage the complete vehicle lifecycle.
-
-### Features
-
-- Add vehicle
-- Edit vehicle
-- View vehicle details
-- Activate/deactivate vehicle
-- Registration number
-- Vehicle type
-- Model
-- Manufacturing year
-- Odometer
-- Current status
-- Insurance information
-- Vehicle documents
-- Maintenance history
-
-### Vehicle Status
+## Multi-tenant architecture
+Every tenant-owned record carries `organizationId`. Backend authorization and database queries enforce organization isolation; frontend filtering alone is never trusted.
 
 ```text
-AVAILABLE
-ON_TRIP
-MAINTENANCE
-INACTIVE
+FleetOS
+├── Organization A
+│   ├── Vehicles
+│   ├── Drivers
+│   ├── Trips
+│   └── Finance
+├── Organization B
+│   ├── Vehicles
+│   ├── Drivers
+│   ├── Trips
+│   └── Finance
+└── Organization C
+    ├── Vehicles
+    ├── Drivers
+    ├── Trips
+    └── Finance
 ```
 
----
-
-# 👨‍✈️ 4. Driver Management
-
-Maintain complete driver information.
-
-### Features
-
-- Add driver
-- Driver profile
-- Employee ID
-- Contact information
-- Driving license details
-- License expiry
-- Assigned vehicle
-- Trip history
-- Driver status
-- Attendance history
-- Income and salary information
-
----
-
-# 🕐 5. Driver Attendance
-
-FleetOS records the driver's working day.
-
-### Workflow
-
+## GPS architecture
+### Simulated telemetry
 ```text
-Driver Login
-      ↓
-Morning Check-In
-      ↓
-ON DUTY
-      ↓
-Vehicle / Trip Assignment
-      ↓
-Driving Activity
-      ↓
-Check-Out
-      ↓
-Working Hours Calculation
+Telemetry Simulator → Node.js → Socket.io → React Live Map
 ```
 
-### Example
-
+### Real phone GPS
 ```text
-Driver: Arun
-Date: 24-09-2026
-
-Check-In:       08:32 AM
-Check-Out:      06:15 PM
-Working Hours:  09h 43m
-Status:         Present
+Driver Phone → Browser Geolocation API → Socket.io/API → Node.js → MongoDB → Socket.io → Manager Dashboard
 ```
 
-### Features
+No physical GPS hardware is required for the phone-GPS implementation. Hardware GPS/OBD-II integration remains a future extension unless actually connected and tested.
 
-- Morning login/check-in
-- Check-out
-- Working-hours calculation
-- Attendance history
-- Present/absent status
-- Overtime calculation
-- Daily work summary
-
----
-
-# 💰 6. Driver Income & Payroll
-
-FleetOS can calculate daily earnings and monthly salary.
-
-### Earning Models
-
-- Fixed daily rate
-- Monthly salary
-- Per-trip payment
-- Trip incentives
-- Overtime
-- Bonuses
-- Deductions
-
-### Daily Income Example
-
+## Offline driver mode
 ```text
-Daily Rate:       ₹800
-Trip Incentive:   ₹300
-Today's Income:  ₹1,100
+Online → Server
+Offline → IndexedDB/local queue
+Network returns → Synchronize → Server
 ```
 
-### Monthly Payroll Example
-
-```text
-Base Salary:      ₹25,000
-Trip Incentives:   ₹3,500
-Overtime:          ₹1,500
-Bonus:             ₹2,000
-Deductions:          ₹500
---------------------------------
-Net Salary:       ₹31,500
-```
-
----
-
-# 🛣️ 7. Trip Management
-
-Manage the complete trip lifecycle.
-
-### Workflow
-
-```text
-Create Trip
-    ↓
-Select Vehicle
-    ↓
-Assign Driver
-    ↓
-Set Source & Destination
-    ↓
-Start Trip
-    ↓
-Track Trip
-    ↓
-Complete Trip
-    ↓
-Trip History
-```
-
-### Features
-
-- Create trip
-- Assign vehicle
-- Assign driver
-- Source
-- Destination
-- Start time
-- End time
-- Trip status
-- Distance
-- Trip history
-
----
-
-# 📍 8. Live Vehicle Tracking
-
-FleetOS supports real-time vehicle monitoring.
-
-## Development Mode
-
-A telemetry simulator can generate:
-
-- Latitude
-- Longitude
-- Speed
-- Fuel level
-- Temperature
-- Odometer
-- Timestamp
-
-### Real-Time Architecture
-
-```text
-GPS / Telemetry Source
-        ↓
-Node.js + Express
-        ↓
-Socket.io
-        ↓
-React Dashboard
-        ↓
-Live Vehicle Map
-```
-
-## Future Production Sources
-
-The telemetry simulator can later be replaced or extended with:
-
-- Driver mobile GPS
-- GPS tracking hardware
-- OBD-II devices
-- IoT devices
-
-### Example Vehicle Data
-
-```json
-{
-  "vehicleId": "V001",
-  "latitude": 13.0827,
-  "longitude": 80.2707,
-  "speed": 48,
-  "fuelLevel": 68,
-  "odometer": 54210,
-  "timestamp": "2026-09-24T09:20:00Z"
-}
-```
-
----
-
-# 🗺️ 9. Live Map Dashboard
-
-The fleet manager can see vehicles on a map.
-
-### Example
-
-```text
-┌─────────────────────────────────────────────┐
-│              LIVE FLEET MAP                 │
-│                                             │
-│      📍 V001                                │
-│                 📍 V014                     │
-│                          📍 V022            │
-│                                             │
-│                                             │
-├─────────────────────────────────────────────┤
-│ V001  ON TRIP   48 km/h                    │
-│ V014  ON TRIP   62 km/h                    │
-│ V022  IDLE       0 km/h                    │
-└─────────────────────────────────────────────┘
-```
-
----
-
-# ⛽ 10. Fuel Management
-
-Track fuel consumption and cost.
-
-### Features
-
-- Add fuel record
-- Fuel quantity
-- Fuel cost
-- Refuelling date
-- Vehicle-wise fuel consumption
-- Fuel efficiency
-- Fuel history
-- Fuel trends
-- Unusual fuel-use alerts
-
-### Example
-
-```text
-Vehicle: TN01AB1234
-Fuel Used: 120 L
-Distance: 900 km
-Efficiency: 7.5 km/L
-```
-
----
-
-# 🔧 11. Maintenance Management
-
-FleetOS helps manage planned and completed maintenance.
-
-### Features
-
-- Maintenance schedule
-- Service history
-- Service type
-- Maintenance cost
-- Next service date
-- Maintenance status
-- Service reminders
-- Maintenance alerts
-- Vehicle service records
-
-### Workflow
-
-```text
-Vehicle Usage
-      ↓
-Service Due Date / Odometer
-      ↓
-Maintenance Alert
-      ↓
-Schedule Service
-      ↓
-Complete Service
-      ↓
-Save Service History
-```
-
----
-
-# 🚨 12. Alerts & Notifications
-
-FleetOS can display useful operational alerts.
-
-### Examples
-
-- Maintenance due
-- Low fuel
-- High temperature
-- Vehicle document expiring
-- Driver license expiring
-- Trip status changes
-- Vehicle offline
-- Attendance events
-- Payroll processing reminders
-
-The goal is to show the **right operational information at the right time**, without unnecessary AI-generated content.
-
----
-
-# 📊 13. Dashboard
-
-The main dashboard gives a quick overview of fleet operations.
-
-### Dashboard Cards
-
-```text
-┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-│ 50 Vehicles│ │ 32 Active  │ │  5 Service │ │ 22 Trips   │
-└────────────┘ └────────────┘ └────────────┘ └────────────┘
-```
-
-### Additional Information
-
-- Drivers on duty
-- Driver attendance
-- Active trips
-- Live vehicle status
-- Maintenance alerts
-- Fuel usage
-- Daily driver income
-- Monthly payroll
-- Recent activities
-
----
-
-# 📈 14. Reports & Analytics
-
-FleetOS provides operational reports instead of making the application depend on AI.
-
-### Reports
-
-- Vehicle utilization
-- Trip performance
-- Fuel consumption
-- Fuel cost
-- Maintenance cost
-- Driver attendance
-- Working hours
-- Driver income
-- Salary/payroll
-- Fleet status
-
-### Example
-
-```text
-Vehicle Utilization
-────────────────────────────────
-Vehicle     Trips     Distance
-V001           12       820 km
-V002            9       650 km
-V003           15      1020 km
-```
-
----
-
-# 🤖 15. Optional Intelligence Layer
-
-AI is **not the main focus of FleetOS**.
-
-The core product works as a normal enterprise fleet management platform using:
-
-- Rules
-- Operational data
-- Alerts
-- Reports
-- Dashboards
-- Real-time monitoring
-
-An optional Python/FastAPI service can be added later for features such as:
-
-- Predictive maintenance
-- Fuel anomaly detection
-- Vehicle risk analysis
-
-These features should only be presented as implemented when they are actually available in the application.
-
----
-
-# 🧾 16. Audit Logs
-
-Important administrative actions can be recorded.
-
-### Example
-
-```text
-User:      Admin
-Action:    Updated Vehicle
-Vehicle:   V102
-Time:      10:32 AM
-Result:    Success
-```
-
-Audit logs improve accountability and help track important changes.
-
----
-
-# 🎨 UI / UX Principles
-
-FleetOS follows a **human-centered enterprise UI**.
-
-### Design Principles
-
-- Clean layouts
-- Clear navigation
-- Practical dashboards
-- Minimal visual clutter
-- Human-readable labels
-- Consistent forms and tables
-- Clear status indicators
-- Responsive design
-- Useful notifications
-- Easy-to-understand charts
-- Role-specific screens
-
-### Main Navigation
-
+Use unique event IDs to prevent duplicate synchronization.
+
+## UI/UX
+FleetOS uses a professional light enterprise SaaS interface.
+
+- Background: `#F6F8FB`
+- Surface: `#FFFFFF`
+- Text: `#172033`
+- Secondary text: `#64748B`
+- Border: `#E5EAF0`
+- Primary: `#2563EB`
+- Success: `#16A34A`
+- Warning: `#D97706`
+- Danger: `#DC2626`
+- Info: `#0284C7`
+- Font: Inter, Plus Jakarta Sans, or Manrope
+
+Avoid dark/cyberpunk/neon styling, excessive gradients or glassmorphism, oversized cards, excessive animation, and AI-chatbot-first interfaces.
+
+## Main modules
 ```text
 Dashboard
 Vehicles
@@ -553,440 +128,267 @@ Live Tracking
 Fuel
 Maintenance
 Attendance
+Expenses
 Payroll
+Profitability
 Reports
+Alerts
+Documents / Compliance
 Settings
 ```
 
-The UI should feel like a real operations product rather than an AI showcase.
+## Technology stack
+### Frontend
+React, React Router, Axios, Socket.io Client, Leaflet, charting library, Lucide React, form validation.
 
----
+### Backend
+Node.js, Express.js, Socket.io, Mongoose, JWT, bcrypt/argon2, validation library, Helmet, rate limiting.
 
-# 🧩 MERN Technology Stack
+### Database
+MongoDB.
 
-| Layer | Technology |
-|---|---|
-| Frontend | React.js |
-| Backend Runtime | Node.js |
-| Backend Framework | Express.js |
-| Database | MongoDB |
-| ODM | Mongoose |
-| Real-Time | Socket.io |
-| Authentication | JWT |
-| Styling | CSS / Tailwind CSS |
-| Charts | Recharts |
-| Maps | Map library / Map API |
-| Optional Intelligence | Python + FastAPI |
-| Version Control | Git + GitHub |
-| Containerization | Docker |
+### Maps and GPS
+Leaflet, OpenStreetMap, Browser Geolocation API.
 
----
+### Offline
+IndexedDB or equivalent browser storage.
 
-# 🏗️ Architecture
-
-```text
-                       FLEETOS
-                          │
-                          ▼
-                 ┌─────────────────┐
-                 │  React Frontend │
-                 └────────┬────────┘
-                          │
-                     REST / HTTP
-                          │
-                 ┌────────▼────────┐
-                 │ Express.js API  │
-                 └────────┬────────┘
-                          │
-                 ┌────────▼────────┐
-                 │     Node.js     │
-                 │ Business Logic  │
-                 └────────┬────────┘
-                          │
-                 ┌────────▼────────┐
-                 │     MongoDB     │
-                 └─────────────────┘
-
-                 Real-Time Layer
-                     Socket.io
-                        ↕
-                  React Dashboard
-
-             Optional Intelligence Layer
-                   Python/FastAPI
-                        ↕
-              Predictive / ML Features
-```
-
----
-
-# 📂 Project File Structure
-
+## Project structure
 ```text
 FleetOS/
-│
-├── frontend/                         # React.js application
-│   │
+├── frontend/
 │   ├── public/
-│   │   └── assets/
-│   │
 │   ├── src/
 │   │   ├── assets/
-│   │   │   ├── images/
-│   │   │   └── icons/
-│   │   │
 │   │   ├── components/
 │   │   │   ├── common/
-│   │   │   │   ├── Navbar.jsx
-│   │   │   │   ├── Sidebar.jsx
-│   │   │   │   ├── Button.jsx
-│   │   │   │   ├── Modal.jsx
-│   │   │   │   └── Loader.jsx
-│   │   │   │
 │   │   │   ├── dashboard/
 │   │   │   ├── vehicles/
 │   │   │   ├── drivers/
 │   │   │   ├── trips/
+│   │   │   ├── tracking/
 │   │   │   ├── fuel/
 │   │   │   ├── maintenance/
 │   │   │   ├── attendance/
 │   │   │   ├── payroll/
-│   │   │   ├── tracking/
-│   │   │   └── analytics/
-│   │   │
+│   │   │   ├── expenses/
+│   │   │   ├── profitability/
+│   │   │   └── reports/
 │   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Vehicles.jsx
-│   │   │   ├── Drivers.jsx
-│   │   │   ├── Trips.jsx
-│   │   │   ├── Fuel.jsx
-│   │   │   ├── Maintenance.jsx
-│   │   │   ├── Attendance.jsx
-│   │   │   ├── Payroll.jsx
-│   │   │   ├── LiveTracking.jsx
-│   │   │   ├── Reports.jsx
-│   │   │   └── Settings.jsx
-│   │   │
+│   │   ├── layouts/
 │   │   ├── services/
-│   │   │   ├── api.js
-│   │   │   ├── authService.js
-│   │   │   ├── vehicleService.js
-│   │   │   ├── driverService.js
-│   │   │   ├── tripService.js
-│   │   │   ├── fuelService.js
-│   │   │   ├── maintenanceService.js
-│   │   │   ├── attendanceService.js
-│   │   │   └── payrollService.js
-│   │   │
-│   │   ├── context/
-│   │   │   ├── AuthContext.jsx
-│   │   │   └── SocketContext.jsx
-│   │   │
 │   │   ├── hooks/
-│   │   │   ├── useAuth.js
-│   │   │   └── useSocket.js
-│   │   │
+│   │   ├── context/
 │   │   ├── routes/
-│   │   │   └── AppRoutes.jsx
-│   │   │
 │   │   ├── utils/
-│   │   │   ├── constants.js
-│   │   │   ├── validators.js
-│   │   │   └── formatters.js
-│   │   │
+│   │   ├── validation/
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── index.css
-│   │
 │   ├── package.json
-│   └── .env
-│
-├── backend/                          # Node.js + Express.js
-│   │
+│   └── .env.example
+├── backend/
 │   ├── src/
 │   │   ├── config/
-│   │   │   ├── database.js
-│   │   │   └── env.js
-│   │   │
 │   │   ├── models/
-│   │   │   ├── User.js
-│   │   │   ├── Organization.js
-│   │   │   ├── Vehicle.js
-│   │   │   ├── Driver.js
-│   │   │   ├── Trip.js
-│   │   │   ├── Fuel.js
-│   │   │   ├── Maintenance.js
-│   │   │   ├── Attendance.js
-│   │   │   ├── Payroll.js
-│   │   │   ├── Telemetry.js
-│   │   │   ├── Notification.js
-│   │   │   └── AuditLog.js
-│   │   │
 │   │   ├── controllers/
-│   │   │   ├── authController.js
-│   │   │   ├── vehicleController.js
-│   │   │   ├── driverController.js
-│   │   │   ├── tripController.js
-│   │   │   ├── fuelController.js
-│   │   │   ├── maintenanceController.js
-│   │   │   ├── attendanceController.js
-│   │   │   ├── payrollController.js
-│   │   │   └── telemetryController.js
-│   │   │
 │   │   ├── routes/
-│   │   │   ├── authRoutes.js
-│   │   │   ├── vehicleRoutes.js
-│   │   │   ├── driverRoutes.js
-│   │   │   ├── tripRoutes.js
-│   │   │   ├── fuelRoutes.js
-│   │   │   ├── maintenanceRoutes.js
-│   │   │   ├── attendanceRoutes.js
-│   │   │   ├── payrollRoutes.js
-│   │   │   └── telemetryRoutes.js
-│   │   │
-│   │   ├── middleware/
-│   │   │   ├── authMiddleware.js
-│   │   │   ├── roleMiddleware.js
-│   │   │   ├── tenantMiddleware.js
-│   │   │   ├── errorMiddleware.js
-│   │   │   └── rateLimiter.js
-│   │   │
 │   │   ├── services/
-│   │   │   ├── authService.js
-│   │   │   ├── payrollService.js
-│   │   │   ├── notificationService.js
-│   │   │   └── telemetryService.js
-│   │   │
+│   │   ├── middleware/
+│   │   ├── validators/
 │   │   ├── sockets/
-│   │   │   └── socketHandler.js
-│   │   │
+│   │   ├── jobs/
+│   │   ├── reports/
 │   │   ├── utils/
-│   │   │   ├── generateToken.js
-│   │   │   ├── logger.js
-│   │   │   └── response.js
-│   │   │
 │   │   ├── app.js
 │   │   └── server.js
-│   │
+│   ├── tests/
 │   ├── package.json
-│   └── .env
-│
-├── simulator/                        # Development telemetry simulator
+│   └── .env.example
+├── simulator/
 │   ├── telemetrySimulator.js
 │   ├── vehicleData.js
 │   └── package.json
-│
-├── ai-service/                       # Optional intelligence layer
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   └── utils/
-│   ├── ml/
-│   │   ├── predictive_maintenance.py
-│   │   ├── anomaly_detection.py
-│   │   └── fleet_health.py
-│   ├── requirements.txt
-│   └── Dockerfile
-│
 ├── docs/
-│   ├── architecture/
-│   ├── api/
-│   ├── database/
-│   └── diagrams/
-│
-├── tests/
-│   ├── frontend/
-│   ├── backend/
-│   └── integration/
-│
-├── .gitignore
+│   ├── architecture.md
+│   ├── api.md
+│   ├── database.md
+│   ├── deployment.md
+│   └── testing.md
 ├── README.md
-├── docker-compose.yml
+├── .gitignore
 └── package.json
 ```
 
----
-
-# 🗃️ Main Database Models
-
+## Database models
 ```text
 User
 Organization
+Role/Permission
+Subscription
 Vehicle
 Driver
 Trip
-Fuel
-Maintenance
-Attendance
-Payroll
 Telemetry
-Notification
+Attendance
+DailyIncome
+FuelRecord
+Maintenance
+Expense
+Payroll
+Alert
 AuditLog
+Report
+ScheduledReport
+Notification
+Document
 ```
 
-### Relationship Overview
+Most operational documents should include `organizationId`, `createdAt`, and `updatedAt` where applicable.
+
+## API overview
+Base path: `/api/v1`
 
 ```text
-Organization
- ├── Users
- ├── Vehicles
- ├── Drivers
- ├── Trips
- ├── Fuel Records
- ├── Maintenance Records
- ├── Attendance
- └── Payroll
+POST /auth/register
+POST /auth/login
+POST /auth/logout
+POST /auth/refresh
+GET  /auth/me
+
+GET/POST/PUT/DELETE /vehicles
+GET/POST/PUT/DELETE /drivers
+GET/POST/PUT/DELETE /trips
+POST /trips/:id/start
+POST /trips/:id/complete
+POST /trips/:id/cancel
+
+POST /tracking/location
+GET  /tracking/live
+
+POST /attendance/check-in
+POST /attendance/check-out
+GET  /attendance
+
+GET/POST/PUT/DELETE /fuel
+GET/POST/PUT/DELETE /maintenance
+GET/POST/PUT/DELETE /expenses
+
+GET  /payroll
+POST /payroll/generate
+POST /payroll/:id/process
+POST /payroll/:id/pay
+
+GET /profitability/vehicles
+GET /profitability/vehicles/:id
+GET /profitability/trips
+GET /profitability/trips/:id
+GET /profitability/summary
+GET /profitability/tco
+
+GET /reports/fleet
+GET /reports/vehicles
+GET /reports/drivers
+GET /reports/fuel
+GET /reports/maintenance
+GET /reports/expenses
+GET /reports/trips
+GET /reports/profitability
+GET /reports/payroll
+
+GET /alerts
+PUT /alerts/:id/read
+PUT /alerts/read-all
+GET /audit-logs
 ```
 
----
+## Validation and security
+- Validate all request bodies, query parameters, IDs, dates, amounts, enums, and GPS coordinates.
+- Enforce authentication, RBAC, and organization ownership on the backend.
+- Use centralized error handling.
+- Use Helmet, CORS, rate limiting, secure cookies where appropriate, query sanitization, file validation, and environment variables.
+- Never expose password hashes, secrets, database credentials, or API keys.
+- Never store secrets in audit logs.
 
-# 🔄 Complete FleetOS Workflow
+## Testing
+Test authentication, RBAC, tenant isolation, vehicle/driver CRUD, trip lifecycle, GPS, attendance, fuel calculations, maintenance, payroll, profitability, TCO, reports, offline synchronization, and security boundaries.
+
+A complete E2E flow should cover:
 
 ```text
-                    USER
-                      │
-                      ▼
-             Login / Authentication
-                      │
-                      ▼
-            Role + Organization Check
-                      │
-                      ▼
-                 DASHBOARD
-                      │
-       ┌──────────────┼──────────────┐
-       │              │              │
-       ▼              ▼              ▼
-   Vehicles        Drivers         Trips
-       │              │              │
-       │              ▼              │
-       │        Morning Check-In     │
-       │              │              │
-       │              ▼              │
-       │        Vehicle Assignment   │
-       │              │              │
-       └──────────────┼──────────────┘
-                      │
-                      ▼
-               Live Tracking
-                      │
-                      ▼
-             Fuel & Maintenance
-                      │
-                      ▼
-              Alerts & Reports
-                      │
-                      ▼
-          Attendance & Daily Income
-                      │
-                      ▼
-                Check-Out
-                      │
-                      ▼
-                 Payroll
+Create Organization
+→ Create Users
+→ Create Driver
+→ Create Vehicle
+→ Assign Driver
+→ Create Trip
+→ Driver Check-in
+→ Start Trip
+→ GPS Updates
+→ Manager Sees Vehicle
+→ Complete Trip
+→ Revenue + Costs
+→ Trip Profit
+→ Vehicle Profitability
+→ Payroll
+→ Report Export
 ```
 
----
+## Development roadmap
+1. Foundation: MERN, MongoDB, authentication, JWT, RBAC, organizations, tenant isolation.
+2. Fleet: vehicles, drivers, assignments, documents.
+3. Trips: creation, assignment, lifecycle, revenue.
+4. Real-time: Socket.io, telemetry, GPS simulator, phone GPS, live map.
+5. Operations: attendance, income, fuel, maintenance, expenses, alerts.
+6. Finance: payroll, trip profitability, vehicle profitability, TCO.
+7. Reporting: dashboards, advanced reports, PDF/Excel/CSV, scheduled reports.
+8. Offline: IndexedDB, queue, synchronization, duplicate prevention.
+9. SaaS: plans, usage limits, billing architecture, platform administration.
+10. Quality: security, validation, unit/integration/E2E/performance testing.
+11. Deployment: production frontend/backend, MongoDB, HTTPS, environment configuration, logging, monitoring.
 
-# 🚀 Development Roadmap
+For each phase use:
 
-## Phase 1 — MERN Foundation
+```text
+PLAN → IMPLEMENT → RUN → TEST → FIX → VERIFY → NEXT PHASE
+```
 
-- React setup
-- Node.js + Express setup
-- MongoDB connection
-- Authentication
-- User and organization management
-- RBAC
+## Environment variables
+### Backend
+```env
+PORT=
+MONGO_URI=
+JWT_SECRET=
+JWT_REFRESH_SECRET=
+CLIENT_URL=
+NODE_ENV=
+COOKIE_SECRET=
+EMAIL_HOST=
+EMAIL_PORT=
+EMAIL_USER=
+EMAIL_PASSWORD=
+```
 
-## Phase 2 — Fleet Operations
+### Frontend
+```env
+VITE_API_URL=
+VITE_SOCKET_URL=
+VITE_MAP_TILE_URL=
+```
 
-- Vehicle management
-- Driver management
-- Trip management
-- Fuel management
-- Maintenance management
+Never commit real credentials. Maintain `.env.example` files.
 
-## Phase 3 — Driver Workforce
-
-- Morning check-in
-- Check-out
-- Working hours
-- Attendance
-- Daily income
-- Overtime
-- Payroll
-
-## Phase 4 — Real-Time Operations
-
-- Socket.io
-- Telemetry simulator
-- Live vehicle status
-- Live vehicle map
-- Operational alerts
-
-## Phase 5 — Reports & Product Polish
-
-- Dashboard
-- Reports
-- Charts
-- Search and filters
-- Responsive design
-- Error handling
-- Audit logs
-- Testing
-
-## Phase 6 — Optional Intelligence
-
-- Predictive maintenance
-- Fuel anomaly detection
-- Vehicle risk analysis
-
-## Phase 7 — Deployment
-
-- Docker
-- CI/CD
-- Production database
-- Cloud deployment
-- Monitoring
-- Production GPS/IoT integration
-
----
-
-# ⚙️ Local Setup
-
-## Prerequisites
-
-Install:
-
-- Node.js
-- npm
-- MongoDB or MongoDB Atlas
-- Git
-- Python (only for the optional intelligence service)
-
-## Clone
-
+## Local development
 ```bash
-git clone <your-repository-url>
+git clone <repository-url>
 cd FleetOS
-```
 
-## Backend
-
-```bash
 cd backend
 npm install
 npm run dev
 ```
 
-## Frontend
-
-Open another terminal:
+In another terminal:
 
 ```bash
 cd frontend
@@ -994,122 +396,58 @@ npm install
 npm run dev
 ```
 
-## Optional AI Service
+For simulated tracking:
 
 ```bash
-cd ai-service
-python -m venv venv
-pip install -r requirements.txt
+cd simulator
+npm install
+npm start
 ```
 
----
+## Production readiness
+Before deployment verify:
 
-# 🔑 Environment Variables
-
-Example backend `.env`:
-
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_ACCESS_SECRET=your_access_secret
-JWT_REFRESH_SECRET=your_refresh_secret
-CLIENT_URL=http://localhost:5173
-```
-
-> Never commit real credentials or secrets to GitHub.
-
----
-
-# 🧪 Testing
-
-Recommended testing areas:
-
-- Authentication
-- Authorization
+- HTTPS
+- Production environment variables
+- Secure CORS
+- Database backups
+- Logging and monitoring
+- Error tracking
+- Rate limiting
+- Secure cookies
+- Production frontend build
 - Tenant isolation
-- Vehicle CRUD
-- Driver CRUD
-- Trip creation
-- Attendance check-in/check-out
-- Working-hours calculation
-- Daily income calculation
-- Payroll calculation
-- Maintenance reminders
-- Fuel records
-- Real-time tracking
+- Role permissions
 - API validation
+- GPS behavior
+- Offline synchronization
 
----
-
-# 🌍 Future Enhancements
-
-- Real GPS hardware integration
-- Driver mobile application
+## Future enhancements
+- Physical GPS devices
 - OBD-II integration
+- IoT telemetry
+- Native driver mobile app
 - Geofencing
 - Route optimization
 - Traffic-aware routing
 - Driver behavior monitoring
-- Insurance/compliance integration
+- Insurance and compliance automation
 - EV battery and charging management
-- Enterprise notifications
-- Advanced analytics
+- Predictive maintenance
+- Fuel anomaly detection
+- Fleet risk scoring
 
----
+These are future extensions and must not be presented as implemented unless they are actually built and tested.
 
-# 📌 Project Summary
+## Project positioning
+FleetOS is more than a vehicle CRUD application. It is designed as a human-centered, secure, multi-tenant fleet operations and profitability platform that connects vehicles, drivers, trips, real-time tracking, maintenance, fuel, expenses, attendance, payroll, financial analysis, and reporting in one system.
 
-FleetOS is designed as a **practical fleet operations platform** rather than an AI-first product.
+> **Track the fleet. Manage the operation. Control the costs. Understand profitability.**
 
-It combines:
+## Author
+**Anto Gladwin A**  
+Computer Science Engineering  
+Easwari Engineering College
 
-```text
-Vehicle Management
-        +
-Driver Management
-        +
-Trip Management
-        +
-Live Tracking
-        +
-Fuel Management
-        +
-Maintenance
-        +
-Attendance
-        +
-Daily Income
-        +
-Payroll
-        +
-Reports
-        +
-Security
-```
-
-into one centralized MERN application.
-
-### Product Positioning
-
-> **FleetOS — One platform to manage vehicles, drivers and fleet operations in real time.**
-
----
-
-## 👨‍💻 Project Information
-
-**Project:** FleetOS  
-**Type:** MERN Full-Stack Project  
-**Architecture:** Modular Full-Stack Architecture  
-**Frontend:** React.js  
-**Backend:** Node.js + Express.js  
-**Database:** MongoDB  
-**Real-Time:** Socket.io  
-**Optional Intelligence:** Python + FastAPI  
-
----
-
-## 📄 License
-
-This project is currently intended for academic and educational use.
-
-Add your preferred open-source or private project license before publishing the repository publicly.
+## License
+Add the project's chosen license here.

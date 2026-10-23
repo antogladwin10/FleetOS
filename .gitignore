@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+*.env
+!.env.example
+*.log
+dist/
+build/
+.DS_Store
+Thumbs.db
+coverage/
+scratch/
+.system_generated/
+mongodb/
+test_print.html
+test_run.pdf
+

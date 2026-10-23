@@ -1,0 +1,10 @@
+{
+  "name": "fleetos-simulator",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Real-time Telemetry and GPS Simulator for FleetOS",
+  "main": "telemetrySimulator.js",
+  "scripts": {
+    "start": "node telemetrySimulator.js"
+  }
+}
