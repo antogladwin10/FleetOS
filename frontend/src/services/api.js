@@ -8,7 +8,15 @@ const api = axios.create({
 
 // ── Request interceptor ─────────────────────────────────────────────────────
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('fleetos_token');
+      if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -47,10 +55,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post('/auth/refresh');
-        processQueue(null);
+        const refreshRes = await api.post('/auth/refresh');
+        const newToken = refreshRes.data?.data?.accessToken;
+        if (newToken && typeof window !== 'undefined') {
+          localStorage.setItem('fleetos_token', newToken);
+        }
+        processQueue(null, newToken);
         return api(originalRequest);
       } catch (refreshError) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('fleetos_token');
+        }
         processQueue(refreshError, null);
         // Only redirect if not already on /login to prevent infinite reload loop
         if (typeof window !== 'undefined' && window.location.pathname !== '/login') {

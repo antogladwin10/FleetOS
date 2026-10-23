@@ -31,25 +31,69 @@ const app = express();
 app.use(helmet());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((url) => url.trim())
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const getAllowedOrigins = () => {
+  const envOrigins = [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+  ]
+    .filter(Boolean)
+    .flatMap((url) => url.split(','))
+    .map((url) => url.trim().replace(/\/$/, ''))
+    .filter(Boolean);
 
-app.use(cors({
+  const defaults = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+  ];
+
+  return Array.from(new Set([...defaults, ...envOrigins]));
+};
+
+export const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Server-to-server, curl, mobile apps, Postman
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  const allowed = getAllowedOrigins();
+
+  if (allowed.includes(normalizedOrigin) || allowed.includes('*')) {
+    return true;
+  }
+
+  // Allow all Vercel production and preview deployments (*.vercel.app)
+  if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(normalizedOrigin)) {
+    return true;
+  }
+
+  // In development mode, allow any localhost or loopback origin on any port
+  if (process.env.NODE_ENV !== 'production' && (normalizedOrigin.includes('localhost') || normalizedOrigin.includes('127.0.0.1'))) {
+    return true;
+  }
+
+  return false;
+};
+
+const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
-    if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      return callback(null, true);
-    }
+    console.warn(`[CORS] Request from disallowed origin: ${origin}`);
     return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 204,
+  maxAge: 86400, // 24 hours preflight cache
+};
+
+app.use(cors(corsOptions));
+// Handle preflight OPTIONS requests before any routing or auth middleware
+app.options('*', cors(corsOptions));
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));

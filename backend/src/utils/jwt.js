@@ -15,13 +15,16 @@ export const verifyAccessToken = (token) =>
 export const verifyRefreshToken = (token) =>
   jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
-export const cookieOptions = (maxAgeMs) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-  maxAge: maxAgeMs,
-  signed: true,
-});
+export const cookieOptions = (maxAgeMs) => {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: maxAgeMs,
+    signed: true,
+  };
+};
 
 export const ACCESS_COOKIE_MAX_AGE = 15 * 60 * 1000;        // 15 min
 export const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days

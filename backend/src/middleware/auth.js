@@ -7,6 +7,10 @@ import { sendError } from '../utils/response.js';
  * Attaches req.user and req.organizationId.
  */
 export const authenticate = async (req, res, next) => {
+  // Preflight OPTIONS requests never include authentication credentials
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
   try {
     let token = null;
 

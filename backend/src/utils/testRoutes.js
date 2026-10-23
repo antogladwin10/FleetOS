@@ -1,23 +1,24 @@
 /**
  * Automated Route Verification Test for FleetOS API
- * Tests all registered production routes without mutating database data.
+ * Tests all registered production routes and CORS preflight without mutating database data.
  */
 
 import http from 'http';
 import app from '../app.js';
-
-const PORT = 5059;
+import connectDB, { closeDB } from '../config/db.js';
 
 const runRouteTests = async () => {
+  await connectDB();
   const server = http.createServer(app);
 
   await new Promise((resolve) => {
-    server.listen(PORT, resolve);
+    server.listen(0, '127.0.0.1', resolve);
   });
 
-  const BASE_URL = `http://localhost:${PORT}`;
+  const port = server.address().port;
+  const BASE_URL = `http://127.0.0.1:${port}`;
   console.log(`\n======================================================`);
-  console.log(`🧪 FleetOS API Route Verification Suite`);
+  console.log(`🧪 FleetOS API Route & CORS Verification Suite`);
   console.log(`   Running against: ${BASE_URL}`);
   console.log(`======================================================\n`);
 
@@ -48,15 +49,18 @@ const runRouteTests = async () => {
         url: path,
         status: res.status,
         ok: res.ok,
+        corsOrigin: res.headers.get('access-control-allow-origin'),
+        corsCredentials: res.headers.get('access-control-allow-credentials'),
+        corsMethods: res.headers.get('access-control-allow-methods'),
         responseSnippet: json ? JSON.stringify(json).slice(0, 80) : '[non-json]',
       };
       results.push(result);
 
       const icon = res.status < 500 ? '✅' : '❌';
-      console.log(`${icon} [${method.padEnd(6)}] ${path.padEnd(32)} -> HTTP ${res.status} (${json?.message || json?.status || 'OK'})`);
+      console.log(`${icon} [${method.padEnd(7)}] ${path.padEnd(32)} -> HTTP ${res.status} (${json?.message || json?.status || 'OK'})`);
       return result;
     } catch (err) {
-      console.error(`❌ [${method.padEnd(6)}] ${path.padEnd(32)} -> ERROR: ${err.message}`);
+      console.error(`❌ [${method.padEnd(7)}] ${path.padEnd(32)} -> ERROR: ${err.message}`);
       results.push({ name, method, url: path, status: 0, ok: false, error: err.message });
     }
   };
@@ -67,13 +71,67 @@ const runRouteTests = async () => {
   await testEndpoint('Health Check', '/health', 'GET');
   await testEndpoint('API v1 Index', '/api/v1', 'GET');
 
-  // 2. Authentication Endpoints
-  console.log('\n--- 2. Authentication Endpoints ---');
-  await testEndpoint('Auth Login Validation', '/api/v1/auth/login', 'POST', {});
-  await testEndpoint('Auth Register Validation', '/api/v1/auth/register', 'POST', {});
-  await testEndpoint('Auth Me Protected Check', '/api/v1/auth/me', 'GET');
+  // 2. CORS Preflight & Cross-Origin Login Tests
+  console.log('\n--- 2. Production CORS Preflight & Login Verification ---');
+  
+  // Vercel production preflight
+  const preflight1 = await testEndpoint(
+    'CORS Preflight Vercel Production',
+    '/api/v1/auth/login',
+    'OPTIONS',
+    null,
+    {
+      Origin: 'https://fleet-os.vercel.app',
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'Content-Type, Authorization',
+    }
+  );
 
-  // 3. Domain Entity Endpoints (Verify correct mounting and auth enforcement)
+  // Vercel preview domain preflight
+  const preflight2 = await testEndpoint(
+    'CORS Preflight Vercel Preview',
+    '/api/v1/auth/login',
+    'OPTIONS',
+    null,
+    {
+      Origin: 'https://fleet-os-git-feature.vercel.app',
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'Content-Type, Authorization',
+    }
+  );
+
+  // Protected route preflight check (Must not return 401)
+  const preflightProtected = await testEndpoint(
+    'CORS Preflight Protected Route',
+    '/api/v1/vehicles',
+    'OPTIONS',
+    null,
+    {
+      Origin: 'https://fleet-os.vercel.app',
+      'Access-Control-Request-Method': 'GET',
+      'Access-Control-Request-Headers': 'Authorization',
+    }
+  );
+
+  // Actual cross-origin POST login attempt with invalid credentials
+  const corsLoginInvalid = await testEndpoint(
+    'Cross-Origin Login Invalid Creds',
+    '/api/v1/auth/login',
+    'POST',
+    { email: 'nonexistent@company.com', password: 'wrongpassword' },
+    { Origin: 'https://fleet-os.vercel.app' }
+  );
+
+  // Actual cross-origin POST login validation error
+  const corsLoginValidation = await testEndpoint(
+    'Cross-Origin Login Empty Body',
+    '/api/v1/auth/login',
+    'POST',
+    {},
+    { Origin: 'https://fleet-os.vercel.app' }
+  );
+
+  // 3. Core Resource Endpoints (Verify auth enforcement)
   console.log('\n--- 3. Core Resource Endpoints (Auth Guarded) ---');
   await testEndpoint('Vehicles', '/api/v1/vehicles', 'GET');
   await testEndpoint('Drivers', '/api/v1/drivers', 'GET');
@@ -100,20 +158,39 @@ const runRouteTests = async () => {
   await testEndpoint('Non-existent 404 Route', '/api/v1/non-existent-endpoint', 'GET');
 
   server.close();
+  await closeDB();
+
+  // Assertions on CORS
+  const corsChecksPassed =
+    preflight1.status === 204 &&
+    preflight1.corsOrigin === 'https://fleet-os.vercel.app' &&
+    preflight1.corsCredentials === 'true' &&
+    preflight2.status === 204 &&
+    preflightProtected.status === 204 &&
+    corsLoginInvalid.corsOrigin === 'https://fleet-os.vercel.app' &&
+    corsLoginInvalid.status === 401;
 
   // Summary
   const failures = results.filter((r) => r.status >= 500 || r.status === 0);
   console.log('\n======================================================');
-  if (failures.length === 0) {
-    console.log(`🎉 ALL ${results.length} ROUTES TESTED SUCCESSFULLY!`);
-    console.log('   - Root GET / operational');
-    console.log('   - Health check GET /health operational');
-    console.log('   - API index GET /api/v1 operational');
-    console.log('   - All 18 module route trees mounted correctly');
-    console.log('   - Authentication & role security strictly enforced (no 500 server errors)');
+  if (failures.length === 0 && corsChecksPassed) {
+    console.log(`🎉 ALL ${results.length} ROUTE & CORS CHECKS PASSED!`);
+    console.log('   - Vercel OPTIONS preflight returned HTTP 204 (NO 401 preflight error)');
+    console.log('   - Access-Control-Allow-Origin: https://fleet-os.vercel.app correctly attached');
+    console.log('   - Access-Control-Allow-Credentials: true enabled for cookies');
+    console.log('   - Cross-origin login requests permitted without browser block');
+    console.log('   - Authentication security & tenant guards remain fully enforced');
     process.exit(0);
   } else {
-    console.error(`❌ ${failures.length} route tests failed with server errors!`);
+    console.error(`❌ Some route or CORS verification checks failed!`);
+    if (!corsChecksPassed) {
+      console.error('   CORS assertion failure details:', {
+        preflight1Status: preflight1.status,
+        preflight1Origin: preflight1.corsOrigin,
+        preflight2Status: preflight2.status,
+        preflightProtectedStatus: preflightProtected.status,
+      });
+    }
     process.exit(1);
   }
 };

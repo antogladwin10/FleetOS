@@ -26,6 +26,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     setError(null);
     const res = await authService.login(credentials);
+    const token = res.data?.data?.accessToken;
+    if (token) {
+      localStorage.setItem('fleetos_token', token);
+    }
     setUser(res.data.data.user);
     return res.data.data.user;
   };
@@ -34,6 +38,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (data) => {
     setError(null);
     const res = await authService.register(data);
+    const token = res.data?.data?.accessToken;
+    if (token) {
+      localStorage.setItem('fleetos_token', token);
+    }
     setUser(res.data.data.user);
     return res.data.data.user;
   };
@@ -41,6 +49,7 @@ export const AuthProvider = ({ children }) => {
   // ── Logout ───────────────────────────────────────────────────────────────
   const logout = async () => {
     try { await authService.logout(); } catch { /* ignore */ }
+    localStorage.removeItem('fleetos_token');
     setUser(null);
   };
 

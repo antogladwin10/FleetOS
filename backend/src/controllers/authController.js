@@ -19,8 +19,10 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie('access_token');
-  res.clearCookie('refresh_token');
+  const opts = cookieOptions(0);
+  delete opts.maxAge;
+  res.clearCookie('access_token', opts);
+  res.clearCookie('refresh_token', opts);
 };
 
 const buildTokenPayload = (user) => ({
