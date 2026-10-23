@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/utils/seed.js",
     "test:db": "node src/utils/testDb.js",
+    "test:db:guard": "node src/utils/testProdGuard.js",
     "test": "node --test tests/**/*.test.js"
   },
   "dependencies": {

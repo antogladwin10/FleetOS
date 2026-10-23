@@ -14,24 +14,36 @@ import Alert from '../models/Alert.js';
 import Document from '../models/Document.js';
 import AuditLog from '../models/AuditLog.js';
 
-export const seedData = async () => {
-  // Clear existing collections
-  await Promise.all([
-    User.deleteMany({}),
-    Organization.deleteMany({}),
-    Vehicle.deleteMany({}),
-    Driver.deleteMany({}),
-    Trip.deleteMany({}),
-    Attendance.deleteMany({}),
-    FuelRecord.deleteMany({}),
-    Maintenance.deleteMany({}),
-    Expense.deleteMany({}),
-    Payroll.deleteMany({}),
-    Alert.deleteMany({}),
-    Document.deleteMany({}),
-    AuditLog.deleteMany({}),
-  ]);
-  console.log('[Seed] 🗑️ Cleared existing data');
+export const seedData = async ({ allowClear = process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true' } = {}) => {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+
+  // Safeguard: Never delete or overwrite collections in production
+  if (isProduction) {
+    const existingUsers = await User.countDocuments();
+    if (existingUsers > 0) {
+      console.warn('[Seed] ⚠️ Production database already contains user data. Skipping seed to preserve production records.');
+      return;
+    }
+    console.log('[Seed] ℹ️ Production database is empty. Performing initial safe seed without deleting any data.');
+  } else if (allowClear) {
+    // Clear existing collections only in local development / testing environments
+    await Promise.all([
+      User.deleteMany({}),
+      Organization.deleteMany({}),
+      Vehicle.deleteMany({}),
+      Driver.deleteMany({}),
+      Trip.deleteMany({}),
+      Attendance.deleteMany({}),
+      FuelRecord.deleteMany({}),
+      Maintenance.deleteMany({}),
+      Expense.deleteMany({}),
+      Payroll.deleteMany({}),
+      Alert.deleteMany({}),
+      Document.deleteMany({}),
+      AuditLog.deleteMany({}),
+    ]);
+    console.log('[Seed] 🗑️ Cleared existing data');
+  }
 
   // 1. ── Super Admin ───────────────────────────────────────────────────────────
   const superAdmin = await User.create({
@@ -915,7 +927,7 @@ export const seedData = async () => {
 };
 
 const runStandalone = async () => {
-  const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fleetos';
+  const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/fleetos';
   try {
     await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB');
