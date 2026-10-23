@@ -24,7 +24,7 @@ All 6 role accounts are genuinely seeded in the MongoDB database using bcrypt ha
 | **Maintenance Staff** | `maintenance@horizon.com` | `Maintenance@1234` | Service Work Orders, Repairs & Inspections |
 | **Financial Analyst** | `analyst@horizon.com` | `Analyst@1234` | Read-only Unit Economics, TCO & Audit Ledger |
 
-*Quick Fill*: The login page at `http://localhost:5173/login` features one-click demo role buttons for instant testing.
+*Quick Fill*: The login page at `https://fleet-os-green.vercel.app/login` features one-click demo role buttons for instant testing.
 
 ---
 
