@@ -31,8 +31,21 @@ const app = express();
 app.use(helmet());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((url) => url.trim())
+  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -56,7 +69,7 @@ const globalLimiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 300 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/health',
+  skip: (req) => req.path === '/health' || req.path === '/' || req.path === '/api/v1',
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use(globalLimiter);
@@ -72,6 +85,20 @@ const authLimiter = rateLimit({
 app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/auth/register', authLimiter);
 
+// ─── Service status & Root info ───────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    name: 'FleetOS API',
+    description: 'FleetOS Enterprise Fleet Management System API',
+    status: 'operational',
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    health: '/health',
+    apiBase: '/api/v1',
+  });
+});
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
@@ -79,6 +106,36 @@ app.get('/health', (req, res) => {
     message: 'FleetOS API is running',
     env: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
+  });
+});
+
+// ─── API v1 Root ──────────────────────────────────────────────────────────────
+app.get('/api/v1', (req, res) => {
+  res.json({
+    success: true,
+    name: 'FleetOS API v1',
+    status: 'operational',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/v1/auth',
+      vehicles: '/api/v1/vehicles',
+      drivers: '/api/v1/drivers',
+      trips: '/api/v1/trips',
+      tracking: '/api/v1/tracking',
+      attendance: '/api/v1/attendance',
+      fuel: '/api/v1/fuel',
+      maintenance: '/api/v1/maintenance',
+      expenses: '/api/v1/expenses',
+      payroll: '/api/v1/payroll',
+      profitability: '/api/v1/profitability',
+      reports: '/api/v1/reports',
+      alerts: '/api/v1/alerts',
+      documents: '/api/v1/documents',
+      organizations: '/api/v1/organizations',
+      subscriptions: '/api/v1/subscriptions',
+      users: '/api/v1/users',
+      auditLogs: '/api/v1/audit-logs',
+    },
   });
 });
 

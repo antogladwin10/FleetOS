@@ -12,7 +12,8 @@
     "seed": "npm run seed --prefix backend",
     "test": "npm test --prefix backend",
     "test:db": "npm run test:db --prefix backend",
-    "test:db:guard": "npm run test:db:guard --prefix backend"
+    "test:db:guard": "npm run test:db:guard --prefix backend",
+    "test:routes": "npm run test:routes --prefix backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
