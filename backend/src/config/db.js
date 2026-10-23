@@ -13,10 +13,25 @@ export const maskMongoUri = (uri) => {
   return uri.replace(/(mongodb(?:\+srv)?:\/\/[^:@\s]+):([^@\s]+)@/i, '$1:****@');
 };
 
+export const ensureDatabaseInUri = (uri, defaultDb = 'fleetos') => {
+  if (!uri) return uri;
+  try {
+    const parsed = new URL(uri);
+    if (!parsed.pathname || parsed.pathname === '/') {
+      parsed.pathname = `/${defaultDb}`;
+      return parsed.toString();
+    }
+    return uri;
+  } catch {
+    return uri;
+  }
+};
+
 const connectDB = async () => {
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
   // Primary environment variable used across FleetOS, with fallback to MONGODB_URI
-  const primaryUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const rawUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const primaryUri = ensureDatabaseInUri(rawUri, 'fleetos');
 
   // 1. Production Mode: Must connect to remote MongoDB Atlas. NO silent in-memory fallback!
   if (isProduction) {
@@ -29,16 +44,19 @@ const connectDB = async () => {
         console.error('[DB] No connection string provided in environment variables.');
       }
       console.error('[DB] Please set the "MONGO_URI" environment variable in your Render Dashboard.');
-      console.error('[DB] Format: mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority\n');
+      console.error('[DB] Format: mongodb+srv://<username>:<password>@<cluster>.mongodb.net/fleetos?retryWrites=true&w=majority\n');
+      await new Promise((resolve) => setTimeout(resolve, 500));
       process.exit(1);
     }
 
     try {
       console.log(`[DB] 🔌 Connecting to production MongoDB Atlas: ${maskMongoUri(primaryUri)}`);
       const conn = await mongoose.connect(primaryUri, {
+        dbName: 'fleetos', // Enforces intended fleetos database even if URI omits path
         serverSelectionTimeoutMS: 10000, // 10s timeout for remote Atlas connections
       });
       console.log(`[DB] ✅ MongoDB Atlas connected successfully: ${conn.connection.host}`);
+      console.log(`[DB] 📂 Active Database: ${conn.connection.name}`);
 
       // Auto-seed initial demo accounts if the database is newly initialized and empty
       const userCount = await User.countDocuments();
@@ -50,13 +68,19 @@ const connectDB = async () => {
       return;
     } catch (err) {
       console.error(`\n[DB] ❌ Failed to connect to MongoDB Atlas (${maskMongoUri(primaryUri)})`);
+      console.error(`[DB] Error Name: ${err.name}`);
       console.error(`[DB] Error details: ${err.message}`);
+      if (err.reason) {
+        console.error(`[DB] Topology Reason: ${JSON.stringify(err.reason)}`);
+      }
       console.error('[DB] 🚨 Fallback to MongoMemoryServer is DISABLED in production.');
       console.error('[DB] Common causes & resolutions:');
       console.error('  1. Atlas Network Access: Whitelist IP "0.0.0.0/0" (Allow Access from Anywhere) in Atlas.');
       console.error('  2. Verify database username and password in Render environment variables.');
       console.error('  3. URL-encode special characters in your password (e.g., replace @ with %40).');
       console.error('  4. Ensure the database name is provided in the connection string (e.g., /fleetos).\n');
+      // Give asynchronous standard output and error streams time to flush before process exit
+      await new Promise((resolve) => setTimeout(resolve, 500));
       process.exit(1);
     }
   }

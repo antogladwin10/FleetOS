@@ -4,17 +4,15 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 
-const URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/fleetos';
+import { maskMongoUri, ensureDatabaseInUri } from '../config/db.js';
 
-const maskMongoUri = (uri) => {
-  if (!uri) return '[NOT_CONFIGURED]';
-  return uri.replace(/(mongodb(?:\+srv)?:\/\/[^:@\s]+):([^@\s]+)@/i, '$1:****@');
-};
+const rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/fleetos';
+const URI = ensureDatabaseInUri(rawUri, 'fleetos');
 
 console.log(`\nTesting connection to: ${maskMongoUri(URI)}\n`);
 
 try {
-  await mongoose.connect(URI, { serverSelectionTimeoutMS: 10000 });
+  await mongoose.connect(URI, { dbName: 'fleetos', serverSelectionTimeoutMS: 10000 });
   console.log('✅ MongoDB connected successfully!');
   console.log(`   Host    : ${mongoose.connection.host}`);
   console.log(`   Port    : ${mongoose.connection.port}`);
